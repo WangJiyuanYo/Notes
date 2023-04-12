@@ -311,3 +311,28 @@ ThreadLocal里面使用了一个存在弱引用的map, map的类型是ThreadLoca
 #### 锁粗化
 
 对重复加同一个锁的复杂流程进行优化
+
+
+
+
+
+### AQS 抽象队列同步器
+
+AQS是一个CLH（双向FIFO队列）
+
+![image-20230412205522776](https://oss.iseenu.icu:443/typora/2023/04/12/202304122102274.png)
+
+和AQS相关的：
+
+1. ReentrantLock
+2. CountDownLatch
+3. ReentrantReadWriteLock
+4. Semaphore
+5. ...
+
+
+
+code:
+
+![image-20230412205638286](https://oss.iseenu.icu:443/typora/2023/04/12/202304122102863.png)
+
