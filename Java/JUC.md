@@ -347,3 +347,13 @@ Node 中的waitState为1表示占用
 
 
 公平锁和非公平锁的lock唯一区别就在于公平锁在获取同步状态时多了一个限制条件
+
+---
+
+![image-20230414212843473](https://oss.iseenu.icu:443/typora/2023/04/14/202304142130196.png)
+
+tryAcquire为主要方法
+
+addWaiter()
+
+![image-20230414215759177](https://oss.iseenu.icu:443/typora/2023/04/14/202304142157421.png)
