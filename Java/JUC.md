@@ -334,7 +334,64 @@ AQS是一个CLH（双向FIFO队列）
 
 code:
 
-![image-20230412205638286](https://oss.iseenu.icu:443/typora/2023/04/12/202304122102863.png)
+```java
+public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchronizer implements java.io.Serializable {
+  protected AbstractQueuedSynchronizer() { }
+  
+  private transient volatile Node head;  // 懒加载，只有在发生竞争的时候才会初始化；
+  private transient volatile Node tail;  // 同样懒加载；
+  private volatile int state;  // 自定义的锁状态，可以用来表示锁的个数，以实现互斥锁和共享锁；
+}
+```
+
+
+
+![image-20230415193648298](https://oss.iseenu.icu:443/typora/2023/04/15/202304151936378.png)
+
+
+
+```java
+static final class Node {
+  static final Node SHARED = new Node();  // 共享模式
+  static final Node EXCLUSIVE = null;     // 互斥模式
+
+  static final int CANCELLED =  1; // 表示线程取消获取锁
+  static final int SIGNAL    = -1; // 表示后继节点需要被唤醒
+  static final int CONDITION = -2; // 表示线程位于条件队列
+  static final int PROPAGATE = -3; // 共享模式下节点的最终状态，确保在doReleaseShared的时候将共享状态继续传播下去
+
+  /**
+   * 节点状态（初始为0，使用CAS原则更新）
+   * 互斥模式：0，SIGNAL，CANCELLED
+   * 共享模式：0，SIGNAL，CANCELLED，PROPAGATE
+   * 条件队列：CONDITION
+   */
+  volatile int waitStatus;
+  
+  volatile Node prev;     // 前继节点
+  volatile Node next;     // 后继节点
+  volatile Thread thread; // 取锁线程
+  Node nextWaiter;        // 模式标识，取值：SHARED、EXCLUSIVE
+
+  // Used by addWaiter，用于添加同队队列
+  Node(Thread thread, Node mode) {   
+    this.nextWaiter = mode;
+    this.thread = thread;
+  }
+
+  // Used by Condition，同于添加条件队列
+  Node(Thread thread, int waitStatus) { 
+    this.waitStatus = waitStatus;
+    this.thread = thread;
+  }
+}
+```
+
+
+
+### 运行逻辑
+
+![image-20230415194049496](https://oss.iseenu.icu:443/typora/2023/04/15/202304151940556.png)
 
 #### 源码层：
 
@@ -357,3 +414,163 @@ tryAcquire为主要方法
 addWaiter()
 
 ![image-20230414215759177](https://oss.iseenu.icu:443/typora/2023/04/14/202304142157421.png)
+
+
+
+```
+ReentrantLock 构造方法可以指定是否是公平锁
+```
+
+![image-20230415191916859](https://oss.iseenu.icu:443/typora/2023/04/15/202304151919954.png)
+
+#### 入队
+
+```java
+private Node addWaiter(Node mode) {
+  Node node = new Node(Thread.currentThread(), mode); // SHARED、EXCLUSIVE
+  // Try the fast path of enq; backup to full enq on failure
+  Node pred = tail;
+  if (pred != null) {
+    node.prev = pred;
+    if (compareAndSetTail(pred, node)) {
+      pred.next = node;
+      return node;
+    }
+  }
+  enq(node);
+  return node;
+}
+```
+
+```java
+private Node enq(final Node node) {
+  for (;;) {
+    Node t = tail;
+    if (t == null) { // Must initialize
+      if (compareAndSetHead(new Node())) // 此时head和tail才初始化
+        tail = head;
+    } else {
+      node.prev = t;
+      if (compareAndSetTail(t, node)) {
+        t.next = node;
+        return t;
+      }
+    }
+  }
+}
+```
+
+### 独占模式
+
+#### 1.应用
+
+```java
+public class Mutex implements Lock {
+  private final Sync sync = new Sync();
+  private static final int lock = 1;
+  private static final int unlock = 0;
+
+  @Override
+  public void lock() {
+    sync.acquire(lock);
+  }
+
+  @Override
+  public boolean tryLock() {
+    return sync.tryAcquire(lock);
+  }
+
+  @Override
+  public void unlock() {
+    sync.release(unlock);
+  }
+
+  private static class Sync extends AbstractQueuedSynchronizer {
+    @Override
+    protected boolean isHeldExclusively() {
+      return getState() == lock;
+    }
+
+    @Override
+    public boolean tryAcquire(int acquires) {
+      if (compareAndSetState(unlock, lock)) {
+        setExclusiveOwnerThread(Thread.currentThread());
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    protected boolean tryRelease(int releases) {
+      if (getState() == unlock)
+        throw new IllegalMonitorStateException();
+      setExclusiveOwnerThread(null);
+      setState(unlock);
+      return true;
+    }
+  }
+}
+```
+
+#### 2.获取锁
+
+### 2. 获取锁
+
+对于独占模式取锁而言有一共有四中方式，
+
+- **tryAcquire：** 快速尝试取锁，成功时返回true；这是独占模式必须要重写的方法，其他方式获取锁时，也会先尝试快速获取锁；同时 `tryAcquire` 也就决定了，这个锁时公平锁/非公平锁，可重入锁/不重冲入锁等；（比如上面的实例就是不可重入非公平锁，具体分析以后还会详细讲解）
+- **acquire：** 不响应中断，阻塞获取锁；
+- **acquireInterruptibly：** 响应中断，阻塞获取锁；
+- **tryAcquireNanos：** 响应中断，超时阻塞获取锁；
+
+![image-20230415222720683](https://oss.iseenu.icu:443/typora/2023/04/15/202304152227844.png)
+
+```java
+public final void acquire(int arg) {
+  if (!tryAcquire(arg) &&                             // 首先尝试快速获取锁
+       acquireQueued(addWaiter(Node.EXCLUSIVE), arg)) // 失败后入队，然后阻塞获取
+    selfInterrupt();                                  // 最后如果取锁的有中断，则重新设置中断
+}
+```
+
+```java
+final boolean acquireQueued(final Node node, int arg) {
+  boolean failed = true;
+  try {
+    boolean interrupted = false;           // 只要取锁过程中有一次中断，返回时都要重新设置中断
+    for (;;) {
+      final Node p = node.predecessor();   // 一直阻塞到前继节点为头结点
+      if (p == head && tryAcquire(arg)) {  // 获取同步状态
+        setHead(node);                     // 设置头结点，此时头部不存在竞争，直接设置
+        // next 主要起优化作用，并且在入队的时候next不是CAS设置
+        // 也就是通过next不一定可以准确取到后继节点，所以在唤醒的时候不能依赖next，需要反向遍历
+        p.next = null; // help GC          
+        failed = false;
+        return interrupted;
+      }
+      if (shouldParkAfterFailedAcquire(p, node) && // 判断并整理前继节点
+        parkAndCheckInterrupt())                   // 当循环最多第二次的时候，必然阻塞
+        interrupted = true;
+    }
+  } finally {
+    if (failed)  // 异常时取消获取
+      cancelAcquire(node);
+  }
+}
+```
+
+```java
+private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
+  int ws = pred.waitStatus;
+  if (ws == Node.SIGNAL) return true;
+  if (ws > 0) {  // 大于0说明，前继节点异常或者取消获取，直接跳过；
+    do {
+      node.prev = pred = pred.prev;  // 跳过pred并建立连接
+    } while (pred.waitStatus > 0);
+    pred.next = node;
+  } else {
+    compareAndSetWaitStatus(pred, ws, Node.SIGNAL);  // 标记后继节点需要唤醒
+  }
+  return false;
+```
+
