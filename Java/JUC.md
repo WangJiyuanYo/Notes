@@ -304,15 +304,40 @@ ThreadLocal里面使用了一个存在弱引用的map, map的类型是ThreadLoca
 
 ### JIT对锁的优化
 
+#### 锁膨胀
+
+锁膨胀是指 synchronized 从无锁升级到偏向锁，再到轻量级锁，最后到重量级锁的过程，它叫做锁膨胀也叫做锁升级
+
 #### 锁消除
 
 对于无意义的锁，编译器将会对其消除
+
+```java
+public String method() {
+    StringBuffer sb = new StringBuffer();
+    for (int i = 0; i < 10; i++) {
+        sb.append("i:" + i);
+    }
+    return sb.toString();
+}
+```
+
+
 
 #### 锁粗化
 
 对重复加同一个锁的复杂流程进行优化
 
+```java
+public class StringBufferTest {
+ 
+    StringBuffer stringBuffer = new StringBuffer();
+ 
+    public void append(){
+        stringBuffer.append("a").append("b").append("c");
+    }
 
+```
 
 
 
@@ -514,8 +539,6 @@ public class Mutex implements Lock {
 
 #### 2.获取锁
 
-### 2. 获取锁
-
 对于独占模式取锁而言有一共有四中方式，
 
 - **tryAcquire：** 快速尝试取锁，成功时返回true；这是独占模式必须要重写的方法，其他方式获取锁时，也会先尝试快速获取锁；同时 `tryAcquire` 也就决定了，这个锁时公平锁/非公平锁，可重入锁/不重冲入锁等；（比如上面的实例就是不可重入非公平锁，具体分析以后还会详细讲解）
@@ -574,3 +597,84 @@ private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
   return false;
 ```
 
+##### acquireInterruptibly 方法
+
+![image-20230416164209852](https://oss.iseenu.icu:443/typora/2023/04/16/202304161805661.png)
+
+```java
+public final void acquireInterruptibly(int arg) throws InterruptedException {
+  if (Thread.interrupted()) throw new InterruptedException();  // 中断退出
+  if (!tryAcquire(arg))           // 获取同步状态
+    doAcquireInterruptibly(arg);  // 中断获取
+}
+```
+
+```java
+private void doAcquireInterruptibly(int arg) throws InterruptedException {
+  final Node node = addWaiter(Node.EXCLUSIVE);   // 加入队尾
+  boolean failed = true;
+  try {
+    for (;;) {
+      final Node p = node.predecessor();
+      if (p == head && tryAcquire(arg)) {
+        setHead(node);
+        p.next = null; // help GC
+        failed = false;
+        return;
+      }
+      if (shouldParkAfterFailedAcquire(p, node) &&   // 判断并整理前继节点
+        parkAndCheckInterrupt())                     // 等待
+        throw new InterruptedException();
+    }
+  } finally {
+    if (failed)
+      cancelAcquire(node);
+  }
+}
+```
+
+#### 3. 释放锁
+
+释放锁时，判断有后继节点需要唤醒，则唤醒后继节点，然后退出；有唤醒的后继节点重新设置头结点，并标记状态
+
+```java
+public final boolean release(int arg) {
+  if (tryRelease(arg)) {   // 由用户重写，尝试释放
+    Node h = head;
+    if (h != null && h.waitStatus != 0)
+      unparkSuccessor(h);  // 唤醒后继节点
+    return true;
+  }
+  return false;
+}	
+```
+
+
+
+### 取消等待
+
+#### 1.队列尾部取消
+
+tail节点指向倒数第二个Node，释放末尾的Thread
+
+#### 2.队列中间取消
+
+#### 3.队列中一片取消
+
+和队列思想一样。释放所需要的Node，并且维护双向链表的结构
+
+## 无锁-独占锁-偏向锁-邮戳锁
+
+### ReentrantReadWriteLock
+
+一个资源能够被多个读线程访问，或者被一个写线程访问，但是不能同时存在读写线程
+
+![image-20230416174010962](https://oss.iseenu.icu:443/typora/2023/04/16/202304161805107.png)
+
+锁饥饿
+
+锁降级
+
+
+
+先都后写可行。先写后读全部锁死
