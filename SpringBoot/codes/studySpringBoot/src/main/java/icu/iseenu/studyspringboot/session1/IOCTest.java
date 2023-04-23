@@ -2,6 +2,8 @@ package icu.iseenu.studyspringboot.session1;
 
 import icu.iseenu.studyspringboot.session1.config.MainConfig;
 import icu.iseenu.studyspringboot.session1.config.MainConfig2;
+import icu.iseenu.studyspringboot.session1.entity.Blue;
+import icu.iseenu.studyspringboot.session1.entity.ColorFactoryBean;
 import icu.iseenu.studyspringboot.session1.entity.Person;
 import org.junit.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -17,6 +19,17 @@ public class IOCTest {
     @Test
     public void testImport(){
         printBeans(applicationContext);
+        Blue bean = applicationContext.getBean(Blue.class);
+        System.out.println(bean);
+
+        Object factoryBean = applicationContext.getBean("colorFactoryBean");
+        Object factoryBean2 = applicationContext.getBean("colorFactoryBean");
+        System.out.println(factoryBean.getClass());
+        System.out.println(factoryBean == factoryBean2);
+
+        Object factoryBean3 = applicationContext.getBean("&colorFactoryBean");
+        System.out.println(factoryBean3.getClass());
+
     }
 
     private void printBeans(AnnotationConfigApplicationContext applicationContext){

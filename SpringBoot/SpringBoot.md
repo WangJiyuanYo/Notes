@@ -251,6 +251,9 @@ Bill
    1. @Import(Class.class);容器中会自动注册这个组件,ID默认为全限定类名
    2. ImportSelector:返回需要导入的组件的全类名数组;(见下)
    3. ImportBeanDefinitionRegistrar:
+4. 使用Spring提供的FactoryBean（工厂Bean）
+   			1. 默认获取到的是工厂Bean调用getObject创建对象
+   			1. 要获取工厂Bean本身，我们需要给id前面加一个&
 
 
 

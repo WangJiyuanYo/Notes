@@ -6,6 +6,7 @@ import icu.iseenu.studyspringboot.session1.condition.MyImportBeanDefinitionRegis
 import icu.iseenu.studyspringboot.session1.condition.MyImportSelector;
 import icu.iseenu.studyspringboot.session1.condition.WindowsCondition;
 import icu.iseenu.studyspringboot.session1.entity.Color;
+import icu.iseenu.studyspringboot.session1.entity.ColorFactoryBean;
 import icu.iseenu.studyspringboot.session1.entity.Person;
 import icu.iseenu.studyspringboot.session1.entity.Red;
 import org.springframework.context.annotation.*;
@@ -33,6 +34,12 @@ public class MainConfig2 {
     @Conditional({LinuxCondition.class})
     public Person person02() {
         return new Person("Linus", 62);
+    }
+
+
+    @Bean
+    public ColorFactoryBean colorFactoryBean(){
+        return new ColorFactoryBean();
     }
 
 }
