@@ -35,6 +35,7 @@ public class IOCTest {
 
 
 
+
 ```java
 // 包含哪些
 Filter[] includeFilters() default {};
@@ -253,9 +254,13 @@ Bill
    3. ImportBeanDefinitionRegistrar:
 4. 使用Spring提供的FactoryBean（工厂Bean）
    			1. 默认获取到的是工厂Bean调用getObject创建对象
-   			1. 要获取工厂Bean本身，我们需要给id前面加一个&
+      			1. 要获取工厂Bean本身，我们需要给id前面加一个&
+
+// 需要仔细看的Bean的源码
 
 
+
+Spring对BeanPostProcess的使用
 
 ### @Import
 
@@ -336,6 +341,9 @@ Bean的生命周期：Bean的创建——>销毁
       单实例：容器关闭时，销毁方法
       多实例：容器不会管理这个Bean；容器不会调用销毁方法
      
+
+### 四种方法
+
  1. 指定初始化销毁方法
      通过@Bean指定init-method,destroy--method
 
@@ -353,6 +361,9 @@ Bean的生命周期：Bean的创建——>销毁
 
      ​	postProcessAfterInitialization
 
+#### @Bean
+
+
 ```java
 //创建个Bean对象
 public class Car {
@@ -369,6 +380,7 @@ public class Car {
     }
 }
 ```
+
 
 ```java
 /**
@@ -413,6 +425,8 @@ public void testImport() {
 
 
 
+#### @InitializingBean
+
 ```java
 //2.让Bean实现InitializingBean接口进（定义初始化逻辑）,DisposableBean 定义销毁
 @Component
@@ -446,6 +460,8 @@ public class MainConfigOfLifeCycle {
 }
 ```
 
+#### JSR250
+
 ```java
 3. 使用JSR250
 *  - @PostConstructor:在Bean创建完成并且属性赋值完成后；来执行初始化
@@ -470,6 +486,9 @@ public class Dog {
     }
 }
 ```
+
+#### BeanPostProcessor
+
 
 ```java
  /* 4. BeanPostProcessor【interface】：Bean后置处理器，在Bean初始化前后进行一些处理工作
