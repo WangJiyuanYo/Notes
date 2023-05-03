@@ -90,7 +90,7 @@ public class MyFilter implements TypeFilter {
 }
 ```
 
-## @Scop/@Lazy  
+### @Scop/@Lazy  
 
 默认为单例对象
 
@@ -579,7 +579,7 @@ public class MainConfigOfPropertyValues {
 
 ​      也可以继续使用@Qualifier指定需要装配的Bean的名字
 
- 2.Spring还支持使用@Resource(JSR250)和@Inject(JSR330)[Java规范]
+2. Spring还支持使用@Resource(JSR250)和@Inject(JSR330)[Java规范]
 
    @Resource：
 
@@ -590,6 +590,11 @@ public class MainConfigOfPropertyValues {
    @Inject:
 
 ​      需要导入javax.inject的包，和 Autowired的功能一样没有 required = false
+
+3. @Autowired:构造器，参数，方法，属性；都是从容器中获取
+   1. [标注在方法上];@Bean+方法参数；参数从容器中获取；默认不写Autowired
+   2. 标在构造器上；如果只有一个有参构造器，这个有参构造器的Autowired可以省略，参数位子的组件还可以自动从容器中获取
+   3. 放在参数位置
 
 ```java
 package icu.iseenu.studyspringboot.session1.config;

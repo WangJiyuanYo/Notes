@@ -1,5 +1,8 @@
 package icu.iseenu.studyspringboot.session1.entity;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class Car {
     public Car(){
         System.out.println("car constructor...");
