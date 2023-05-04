@@ -595,6 +595,7 @@ public class MainConfigOfPropertyValues {
    1. [标注在方法上];@Bean+方法参数；参数从容器中获取；默认不写Autowired
    2. 标在构造器上；如果只有一个有参构造器，这个有参构造器的Autowired可以省略，参数位子的组件还可以自动从容器中获取
    3. 放在参数位置
+4. 自定义组件，想要使用Spring底层的一些组件（ApplicationContext，BeanFactory）实现xxxAware接口；在创建对象时，会调用接口规定的方法注入到组件中；把Spring底层的一些组件注入到自定义的Bean中；xxxAware：功能使用xxxProcessor：ApplicationContextAware => ApplicationContextAwareProcessor；
 
 ```java
 package icu.iseenu.studyspringboot.session1.config;
@@ -663,3 +664,91 @@ public class BookService {
     }
 }
 ```
+
+### @Profile
+
+指定组件在哪个环境的情况下才能被注册到容器中，不指定，任何环境下都能注册这个组件
+
+1. 加了环境标识的Bean，只有这个环境被激活时才能注册到容器中；默认Default
+2. *写在配置类上，只有指定环境的时候，整个配置类里面所有的配置才开始生效*
+3. *没有标注环境就表示的**Bean**，在任何环境下都是加载的*
+
+
+
+```java
+
+    public Yellow yellow() {
+        return new Yellow();
+    }
+
+    @Bean("devDatasource")
+    @Profile("dev")
+    public DataSource dataSource() throws PropertyVetoException {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser("root");
+        dataSource.setPassword(dbPassword);
+        dataSource.setJdbcUrl("jdbc:mysql://3306/test");
+        dataSource.setDriverClass("com.mysql.jdbc.Driver");
+        return dataSource;
+    }
+
+    @Bean("testDatasource")
+    @Profile("test")
+    public DataSource dataSource01(@Value("db.password") String pwd) throws PropertyVetoException {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser("root");
+        dataSource.setPassword(pwd);
+        dataSource.setJdbcUrl("jdbc:mysql://3306/test");
+        dataSource.setDriverClass(driver);
+        return dataSource;
+    }
+
+    @Bean("prodDatasource")
+    @Profile("prod")
+    public DataSource dataSource02() throws PropertyVetoException {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser("root");
+        dataSource.setPassword("123456");
+        dataSource.setJdbcUrl("jdbc:mysql://3306/test");
+        dataSource.setDriverClass("com.mysql.jdbc.Driver");
+        return dataSource;
+    }
+
+    @Override
+    public void setEmbeddedValueResolver(StringValueResolver stringValueResolver) {
+        String dbDriver = stringValueResolver.resolveStringValue("${db.driver}");
+        this.driver = dbDriver;
+    }
+}
+```
+
+
+
+```java
+public class IOCTestProfile {
+
+    //1.使用命令行参数；在虚拟机参数位置：-Dspring.profiles.active=test
+    //2.代码激活某种环境
+    @Test
+    public void test() {
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
+        //1.创建一个ApplicationContext
+//        2.设置需要激活的环境
+        applicationContext.getEnvironment().setActiveProfiles("dev");
+        //3.注册主配置类；
+        applicationContext.register(MainConfigOfProfile.class);
+        //4.启动刷新
+        applicationContext.refresh();
+        String[] beanNamesForType = applicationContext.getBeanNamesForType(DataSource.class);
+        for (String s : beanNamesForType) {
+            System.out.println(s);
+        }
+
+        Yellow yellow = applicationContext.getBean(Yellow.class);
+        System.out.println(yellow);
+
+        applicationContext.close();
+    }
+}
+```
+
