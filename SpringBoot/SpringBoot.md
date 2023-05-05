@@ -886,3 +886,25 @@ public class IOCTest_AOP {
     }
 }
 ```
+
+### AOP原理
+
+【看给容器中注册了什么组件，这个组件什么时候工作，这个组件的功能是什么】
+
+@EnableAspectJAutoProxy
+
+1. 是什么：
+
+​		@Import({AspectJAutoProxyRegistrar.class})；给容器中导入AspectJAutoProxyRegistrar
+
+2. AnnotationAwareAspectJAutoProxyCreator;
+
+   ->AspectJAwareAdvisorAutoProxyCreator
+
+   ​	->AbstractAdvisorAutoProxyCreator
+
+   ​		->AbstractAutoProxyCreator
+
+   ​				implements SmartInstantiationAwareBeanPostProcessor, BeanFactoryAware
+
+   ​				关注后置处理器（在Bean初始化完成前后做的事情）、自动装配BeanFactory、
