@@ -767,7 +767,7 @@ public class IOCTestProfile {
 3. 定义一个日志切面类（LogAspects）；切面类里面的方法需要动态感知 MathCalculator.div运行到哪里
 
  	通知方法：
-
+ 	
  	前置通知(@Before)：logStart：在目标运行之前运行
 
 ​	 后置通知(@After)：logEnd：在目标运行之后运行（无论方法正常结束还是异常结束都执行）
@@ -908,3 +908,12 @@ public class IOCTest_AOP {
    ​				implements SmartInstantiationAwareBeanPostProcessor, BeanFactoryAware
 
    ​				关注后置处理器（在Bean初始化完成前后做的事情）、自动装配BeanFactory、
+
+AbstractAutoProxyCreator.setBeanFactory()
+
+AbstractAutoProxyCreator有后置处理器的逻辑
+
+AbstractAdvisorAutoProxyCreator.setBeanFactory()->initBeanFactory 
+
+AnnotationAwareAspectJAutoProxyCreator.initBeanFactory ()
+
