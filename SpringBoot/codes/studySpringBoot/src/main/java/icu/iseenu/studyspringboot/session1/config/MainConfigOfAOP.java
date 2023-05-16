@@ -38,6 +38,17 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  *          （2）、给容器中加别的BeanPostProcessor
  *          （3)、优先注册了PriorityOrdered接口的BeanPostProcessor
  *          （4）、再给容器中注册实现了Ordered接口的BeanPostProcessor
+ *          （5）、注册没实现优先级接口的BeanPostProcessor
+ *          （6）、注册BeanPostProcessor实际上就是创建BeanPostProcessor对象，保存在容器中
+ *                创建internalAutoProxyCreator的BeanPostProcessor
+ *                （1）、创建Bean实例
+ *                （2）、populateBean：给Bean的各种属性赋值
+ *                （3）、initializeBean：初始化Bean
+ *                      1）、invokeAwareMethods();处理Aware接口的方法回调
+ *                      2）、applyBeanPostProcessorBeforeInitialization()；应用后置处理器的postProcessBeforeInitialization()
+ *                      3）、invokeInitMethods()；执行自定义的初始化方法
+ *                      4）、applyBeanPostProcessorAfterInitialization；执行后置处理器的postProcessAfterInitialization()
+ *                （4）、BeanPostProcessor(AnnotationAwareAspectJAutoProxyCreator)创建成功 --》aspectJAdvisorsBuilder
  */
 @Configuration
 @EnableAspectJAutoProxy
